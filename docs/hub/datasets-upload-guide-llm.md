@@ -495,7 +495,7 @@ dataset.push_to_hub("username/dataset")
 
 ## Documentation
 
-**Core docs**: [Adding datasets](https://huggingface.co/docs/hub/datasets-adding) | [Dataset viewer](https://huggingface.co/docs/hub/datasets-viewer) | [Storage limits](https://huggingface.co/docs/hub/storage-limits) | [Upload guide](https://huggingface.co/docs/datasets/upload_dataset)
+**Core docs**: [Adding datasets](https://huggingface.co/docs/hub/datasets-adding) | [Dataset viewer](https://huggingface.co/docs/hub/data-studio) | [Storage limits](https://huggingface.co/docs/hub/storage-limits) | [Upload guide](https://huggingface.co/docs/datasets/upload_dataset)
 
 ## Dataset Cards
 
