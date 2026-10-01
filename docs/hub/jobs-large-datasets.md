@@ -10,6 +10,18 @@ Every Job comes with a fixed amount of local disk, set by its [hardware flavor](
 - **Tools that expect local file paths** → [mount](#mount-a-dataset-model-or-bucket) the repo and read it lazily.
 - **Persisting results** → write them to a [Storage Bucket](#save-results) so they survive the Job.
 
+## Use the CPUs and memory of the Job
+
+Each flavor gives the Job a fixed number of CPUs and amount of RAM (see `hf jobs hardware`). Inside the Job, the `CPU_CORES` and `MEMORY` environment variables hold them. Size worker pools from `CPU_CORES`: on CPU flavors, `os.cpu_count()` returns the CPUs of the host machine, not of the Job (64 instead of 8 on `cpu-upgrade`), and too many workers slow the work down.
+
+```python
+import os
+
+num_workers = int(os.environ.get("CPU_CORES", os.cpu_count()))
+```
+
+To check whether a running Job uses its CPUs, memory, or GPUs, run `hf jobs stats <job_id>`.
+
 ## Stream the dataset
 
 Streaming reads examples from the Hub as your code consumes them — no download, no local copy, and it scales to multi-TB datasets. Recent releases made it [up to 100× more efficient](https://huggingface.co/blog/streaming-datasets), reaching performance on par with local SSDs when training across many workers:
@@ -78,7 +90,7 @@ for path in Path("/mnt/data/sample/10BT").glob("*.parquet"):
     ...  # process one shard at a time, write results out
 ```
 
-Mounting is the natural fit when files are consumed whole — model weights, audio or image files, archives — or when a tool only accepts file paths. For large multi-file Parquet scans, querying [directly over `hf://`](#read-and-filter-over-hf) is typically several times faster than scanning through a mount.
+Mounting is the natural fit when files are consumed whole — model weights, audio or image files, archives — or when a tool only accepts file paths. For large multi-file Parquet scans, querying [directly over `hf://`](#read-and-filter-over-hf) is typically several times faster than scanning through a mount, and readers that use many threads on one file can get slower through a mount, not faster.
 
 Datasets and models mount read-only; buckets are read-write, which makes them a good place to [save results](#save-results). See [Configuration](./jobs-configuration#volumes) for the full `-v` syntax and [bucket access patterns](./storage-buckets-access#volume-mounts-in-jobs-and-spaces) for details.
 
@@ -114,6 +126,9 @@ duckdb.sql(
 ```
 
 Files written under the bucket mount path persist after the Job ends. To publish a processed dataset instead, use [`Dataset.push_to_hub`](/docs/datasets/upload_dataset).
+
+> [!WARNING]
+> Data written to a mounted bucket passes through the Job's ephemeral disk before it is uploaded, so a mount does not give the Job more disk. A Job that writes more than its ephemeral storage through a mount is stopped. For larger outputs, stream the data, pick a flavor with more disk, or split the work across several Jobs.
 
 ## Worked example: query Common Crawl without downloading it
 
